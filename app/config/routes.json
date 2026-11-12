@@ -1,6 +1,32 @@
 [
-  {
+   {
     "uri": "/",
-    "method": "GET"
+    "method": "GET",
+    "controller":"HomeController"
+  },
+  {
+    "uri": "/users",
+    "method": "GET",
+    "controller":"GetAllUsersController"
+  },
+  {
+    "uri": "/users",
+    "method": "POST",
+    "controller":"_CreateUserController"
+  },
+  {
+    "uri": "/users/{id}",
+    "method": "GET",
+    "controller":"Users\\GetUserController"
+  },
+  {
+    "uri": "/stock",
+    "method": "GET",
+    "controller":"Stock\\StockController"
+  },
+  {
+    "uri": "/contact",
+    "method": "POST",
+    "controller": "ContactController"
   }
 ]
