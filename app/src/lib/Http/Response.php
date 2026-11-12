@@ -1,12 +1,9 @@
 <?php
 
-namespace App\Http;
+namespace App\lib\Http;
 
-class Response {
+class Response
+{
     public int $statusCode;
     public string $content;
 }
-
-
-?>
-
