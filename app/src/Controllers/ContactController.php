@@ -17,6 +17,16 @@ final class ContactController extends AbstractController
 {
     public function process(Request $request): Response
     {
+        if ($request->getMethod() === 'GET') {
+            try {
+                $contacts = (new ContactStorage())->findAll();
+            } catch (Throwable) {
+                return $this->jsonResponse(500, ['error' => 'The contacts could not be read.']);
+            }
+
+            return $this->jsonResponse(200, $contacts);
+        }
+
         if (!$this->hasJsonContentType($request->getHeaders())) {
             return $this->jsonResponse(415, ['error' => 'Content-Type must be application/json.']);
         }

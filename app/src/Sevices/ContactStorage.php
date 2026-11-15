@@ -60,4 +60,67 @@ final class ContactStorage
 
         return $filename;
     }
+
+    /** @return list<array{email: string, subject: string, message: string, dateOfCreation: string, dateOfLastUpdate: string}> */
+    public function findAll(): array
+    {
+        if (!is_dir($this->directory)) {
+            return [];
+        }
+
+        $paths = glob($this->directory . DIRECTORY_SEPARATOR . '*.json');
+        if ($paths === false) {
+            throw new RuntimeException('Unable to list the contacts directory.');
+        }
+        sort($paths, SORT_STRING);
+
+        $contacts = [];
+        foreach ($paths as $path) {
+            $contents = @file_get_contents($path);
+            if (!is_string($contents)) {
+                throw new RuntimeException('Unable to read a contact file.');
+            }
+
+            try {
+                $decoded = json_decode($contents, false, 512, JSON_THROW_ON_ERROR);
+            } catch (JsonException $exception) {
+                throw new RuntimeException('A contact file contains invalid JSON.', previous: $exception);
+            }
+
+            if (!$decoded instanceof \stdClass) {
+                throw new RuntimeException('A contact file must contain a JSON object.');
+            }
+
+            $contact = get_object_vars($decoded);
+            $expectedFields = ['email', 'subject', 'message', 'dateOfCreation', 'dateOfLastUpdate'];
+            if (array_diff(array_keys($contact), $expectedFields) !== [] || array_diff($expectedFields, array_keys($contact)) !== []) {
+                throw new RuntimeException('A contact file has an invalid structure.');
+            }
+
+            foreach ($expectedFields as $field) {
+                if (!is_string($contact[$field])) {
+                    throw new RuntimeException('A contact file contains an invalid property type.');
+                }
+            }
+            if (
+                filter_var($contact['email'], FILTER_VALIDATE_EMAIL) === false
+                || trim($contact['subject']) === ''
+                || trim($contact['message']) === ''
+                || preg_match('/^\d+$/', $contact['dateOfCreation']) !== 1
+                || preg_match('/^\d+$/', $contact['dateOfLastUpdate']) !== 1
+            ) {
+                throw new RuntimeException('A contact file contains invalid values.');
+            }
+
+            $contacts[] = [
+                'email' => $contact['email'],
+                'subject' => $contact['subject'],
+                'message' => $contact['message'],
+                'dateOfCreation' => $contact['dateOfCreation'],
+                'dateOfLastUpdate' => $contact['dateOfLastUpdate'],
+            ];
+        }
+
+        return $contacts;
+    }
 }
