@@ -1,7 +1,5 @@
 <?php
 
-declare(strict_types=1);
-
 namespace App\Services;
 
 use JsonException;
@@ -122,5 +120,50 @@ final class ContactStorage
         }
 
         return $contacts;
+    }
+
+    /** @return array{email: string, subject: string, message: string, dateOfCreation: string, dateOfLastUpdate: string}|null */
+    public function findByFilename(string $filename): ?array
+    {
+        if (preg_match('/^\d+_[A-Za-z0-9@._+-]+\.json$/', $filename) !== 1) {
+            return null;
+        }
+
+        $path = $this->directory . DIRECTORY_SEPARATOR . $filename;
+        if (!is_file($path)) {
+            return null;
+        }
+
+        $contents = @file_get_contents($path);
+        if (!is_string($contents)) {
+            throw new RuntimeException('Unable to read a contact file.');
+        }
+
+        try {
+            $contact = json_decode($contents, true, 512, JSON_THROW_ON_ERROR);
+        } catch (JsonException $exception) {
+            throw new RuntimeException('A contact file contains invalid JSON.', previous: $exception);
+        }
+
+        $expectedFields = ['email', 'subject', 'message', 'dateOfCreation', 'dateOfLastUpdate'];
+        if (!is_array($contact) || array_diff(array_keys($contact), $expectedFields) !== [] || array_diff($expectedFields, array_keys($contact)) !== []) {
+            throw new RuntimeException('A contact file has an invalid structure.');
+        }
+        foreach ($expectedFields as $field) {
+            if (!is_string($contact[$field])) {
+                throw new RuntimeException('A contact file contains an invalid property type.');
+            }
+        }
+        if (
+            filter_var($contact['email'], FILTER_VALIDATE_EMAIL) === false
+            || trim($contact['subject']) === ''
+            || trim($contact['message']) === ''
+            || preg_match('/^\d+$/', $contact['dateOfCreation']) !== 1
+            || preg_match('/^\d+$/', $contact['dateOfLastUpdate']) !== 1
+        ) {
+            throw new RuntimeException('A contact file contains invalid values.');
+        }
+
+        return $contact;
     }
 }

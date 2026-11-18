@@ -33,5 +33,10 @@
     "uri": "/contact",
     "method": "GET",
     "controller": "ContactController"
+  },
+  {
+    "uri": "/contact/{filename}",
+    "method": "GET",
+    "controller": "ContactController"
   }
 ]

@@ -1,7 +1,5 @@
 <?php
 
-declare(strict_types=1);
-
 namespace App\Controllers;
 
 use App\lib\Controllers\AbstractController;
@@ -18,6 +16,21 @@ final class ContactController extends AbstractController
     public function process(Request $request): Response
     {
         if ($request->getMethod() === 'GET') {
+            $filename = $request->getRouteParam('filename');
+            if ($filename !== null) {
+                try {
+                    $contact = (new ContactStorage())->findByFilename($filename);
+                } catch (Throwable) {
+                    return $this->jsonResponse(500, ['error' => 'The contact could not be read.']);
+                }
+
+                if ($contact === null) {
+                    return $this->jsonResponse(404, ['error' => 'Contact not found.']);
+                }
+
+                return $this->jsonResponse(200, $contact);
+            }
+
             try {
                 $contacts = (new ContactStorage())->findAll();
             } catch (Throwable) {
