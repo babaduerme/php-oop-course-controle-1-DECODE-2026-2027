@@ -166,4 +166,33 @@ final class ContactStorage
 
         return $contact;
     }
+
+    /** @param array<string, string> $changes
+     *  @return array{email: string, subject: string, message: string, dateOfCreation: string, dateOfLastUpdate: string}|null
+     */
+    public function updateByFilename(string $filename, array $changes): ?array
+    {
+        $contact = $this->findByFilename($filename);
+        if ($contact === null) {
+            return null;
+        }
+
+        foreach ($changes as $field => $value) {
+            $contact[$field] = $value;
+        }
+        $contact['dateOfLastUpdate'] = (string) max(time(), (int) $contact['dateOfLastUpdate'] + 1);
+
+        try {
+            $json = json_encode($contact, JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+        } catch (JsonException $exception) {
+            throw new RuntimeException('Unable to encode the contact file.', previous: $exception);
+        }
+
+        $path = $this->directory . DIRECTORY_SEPARATOR . $filename;
+        if (@file_put_contents($path, $json, LOCK_EX) !== strlen($json)) {
+            throw new RuntimeException('Unable to update the contact file.');
+        }
+
+        return $contact;
+    }
 }

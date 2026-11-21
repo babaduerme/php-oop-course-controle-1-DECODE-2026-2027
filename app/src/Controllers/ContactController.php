@@ -40,6 +40,44 @@ final class ContactController extends AbstractController
             return $this->jsonResponse(200, $contacts);
         }
 
+        if ($request->getMethod() === 'PATCH') {
+            if (!$this->hasJsonContentType($request->getHeaders())) {
+                return $this->jsonResponse(415, ['error' => 'Content-Type must be application/json.']);
+            }
+
+            $filename = $request->getRouteParam('filename');
+            if ($filename === null) {
+                return $this->jsonResponse(400, ['error' => 'A contact filename is required.']);
+            }
+
+            $storage = new ContactStorage();
+            try {
+                if ($storage->findByFilename($filename) === null) {
+                    return $this->jsonResponse(404, ['error' => 'Contact not found.']);
+                }
+            } catch (Throwable) {
+                return $this->jsonResponse(500, ['error' => 'The contact could not be read.']);
+            }
+
+            try {
+                $changes = (new ContactValidator())->validateUpdate($request->getBody());
+            } catch (ContactValidationException $exception) {
+                return $this->jsonResponse(400, ['error' => $exception->getMessage()]);
+            }
+
+            try {
+                $contact = $storage->updateByFilename($filename, $changes);
+            } catch (Throwable) {
+                return $this->jsonResponse(500, ['error' => 'The contact could not be updated.']);
+            }
+
+            if ($contact === null) {
+                return $this->jsonResponse(404, ['error' => 'Contact not found.']);
+            }
+
+            return $this->jsonResponse(200, $contact);
+        }
+
         if (!$this->hasJsonContentType($request->getHeaders())) {
             return $this->jsonResponse(415, ['error' => 'Content-Type must be application/json.']);
         }

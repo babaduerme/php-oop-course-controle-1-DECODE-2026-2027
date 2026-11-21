@@ -46,4 +46,45 @@ final class ContactValidator
 
         return $contact;
     }
+
+    /** @return array<string, string> */
+    public function validateUpdate(string $body): array
+    {
+        try {
+            $decoded = json_decode($body, false, 512, JSON_THROW_ON_ERROR);
+        } catch (JsonException) {
+            throw new ContactValidationException('Request body must contain valid JSON.');
+        }
+
+        if (!$decoded instanceof \stdClass) {
+            throw new ContactValidationException('Request body must be a JSON object.');
+        }
+
+        $contact = get_object_vars($decoded);
+        if ($contact === []) {
+            throw new ContactValidationException('At least one property must be provided.');
+        }
+
+        $unknownFields = array_diff(array_keys($contact), self::REQUIRED_FIELDS);
+        if ($unknownFields !== []) {
+            throw new ContactValidationException('Only email, subject and message properties are allowed.');
+        }
+
+        foreach ($contact as $field => $value) {
+            if (!is_string($value)) {
+                throw new ContactValidationException(sprintf('The %s property must be a string.', $field));
+            }
+
+            $contact[$field] = trim($value);
+            if ($contact[$field] === '') {
+                throw new ContactValidationException(sprintf('The %s property must not be empty.', $field));
+            }
+        }
+
+        if (isset($contact['email']) && filter_var($contact['email'], FILTER_VALIDATE_EMAIL) === false) {
+            throw new ContactValidationException('The email property must contain a valid email address.');
+        }
+
+        return $contact;
+    }
 }
