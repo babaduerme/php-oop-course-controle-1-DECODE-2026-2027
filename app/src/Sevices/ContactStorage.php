@@ -195,4 +195,23 @@ final class ContactStorage
 
         return $contact;
     }
+
+    /** @throws RuntimeException */
+    public function deleteByFilename(string $filename): bool
+    {
+        if (preg_match('/^\d+_[A-Za-z0-9@._+-]+\.json$/', $filename) !== 1) {
+            return false;
+        }
+
+        $path = $this->directory . DIRECTORY_SEPARATOR . $filename;
+        if (!is_file($path)) {
+            return false;
+        }
+
+        if (!@unlink($path)) {
+            throw new RuntimeException('Unable to delete the contact file.');
+        }
+
+        return true;
+    }
 }

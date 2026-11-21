@@ -15,6 +15,30 @@ final class ContactController extends AbstractController
 {
     public function process(Request $request): Response
     {
+        if ($request->getMethod() === 'DELETE') {
+            $filename = $request->getRouteParam('filename');
+            if ($filename === null) {
+                return $this->jsonResponse(400, ['error' => 'A contact filename is required.']);
+            }
+
+            try {
+                $deleted = (new ContactStorage())->deleteByFilename($filename);
+            } catch (Throwable) {
+                return $this->jsonResponse(500, ['error' => 'The contact could not be deleted.']);
+            }
+
+            if (!$deleted) {
+                return $this->jsonResponse(404, ['error' => 'Contact not found.']);
+            }
+
+            $response = new Response();
+            $response->statusCode = 204;
+            $response->headers = [];
+            $response->content = '';
+
+            return $response;
+        }
+
         if ($request->getMethod() === 'GET') {
             $filename = $request->getRouteParam('filename');
             if ($filename !== null) {
